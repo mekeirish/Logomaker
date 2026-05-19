@@ -1,0 +1,782 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Vector Engine Infinite</title>
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            user-select: none;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background-color: #16161a;
+            color: #f5f5f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Boîtier de l'application type Smartphone */
+        .app-container {
+            width: 100%;
+            max-width: 412px;
+            height: 100vh;
+            max-height: 892px;
+            background: #1e1e22;
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            position: relative;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.7);
+            overflow-y: auto;
+            border: 1px solid #2d2d35;
+            border-radius: 40px;
+        }
+
+        .app-header {
+            text-align: center;
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 20px;
+            color: #ffffff;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+        }
+
+        /* Ligne supérieure regroupant les deux photos côte à côte */
+        .images-row {
+            display: flex;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 20px;
+        }
+
+        /* Zones d'upload adaptées pour le format côte à côte */
+        .upload-zone {
+            flex: 1;
+            height: 140px;
+            background: #16161a;
+            border: 2px dashed #3a3a42;
+            border-radius: 20px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .upload-zone:active {
+            transform: scale(0.98);
+            background: #232329;
+        }
+
+        .upload-zone .plus-icon {
+            font-size: 40px;
+            color: #4e4e5a;
+            font-weight: 200;
+            margin-bottom: 4px;
+        }
+
+        .upload-zone p {
+            font-size: 11px;
+            color: #727282;
+            text-align: center;
+            padding: 0 4px;
+        }
+
+        .upload-zone img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+            position: absolute;
+            top: 0;
+            left: 0;
+            padding: 8px;
+            background: #16161a;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        /* Sélecteur de niveau de Zoom */
+        .zoom-container {
+            width: 100%;
+            margin-bottom: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .zoom-label-row {
+            display: flex;
+            justify-content: space-between;
+            font-size: 11px;
+            color: #8e8e9a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+        }
+
+        .zoom-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            background: #282830;
+            border-radius: 3px;
+            outline: none;
+            accent-color: #007aff;
+            cursor: pointer;
+        }
+
+        .zoom-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #007aff;
+            cursor: pointer;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+
+        /* Section Boutons de contrôle */
+        .controls-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .color-pickers {
+            display: flex;
+            justify-content: space-around;
+            align-items: flex-end;
+            gap: 12px;
+        }
+
+        .color-field {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            flex: 1;
+        }
+
+        .color-field span {
+            font-size: 11px;
+            color: #8e8e9a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: 600;
+            text-align: center;
+        }
+
+        /* Boutons carrés pour les couleurs et la pipette */
+        .color-btn-wrapper, .pipette-btn {
+            width: 76px;
+            height: 76px;
+            border-radius: 20px;
+            background: #282830;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            box-shadow: 0 6px 12px rgba(0,0,0,0.3);
+            overflow: hidden;
+            position: relative;
+            border: 2px solid #3a3a42;
+            transition: all 0.2s ease;
+        }
+
+        .color-btn-wrapper input[type="color"] {
+            position: absolute;
+            width: 200%;
+            height: 200%;
+            cursor: pointer;
+            border: none;
+            background: none;
+            appearance: none;
+            -webkit-appearance: none;
+        }
+
+        /* État enfoncé de la pipette */
+        .pipette-btn {
+            cursor: pointer;
+            font-size: 26px;
+        }
+
+        .pipette-btn.active {
+            background: #16161a;
+            border-color: #007aff;
+            box-shadow: inset 0 4px 8px rgba(0,0,0,0.6);
+            transform: scale(0.95);
+        }
+
+        /* Panneau de décision de couleur interne (sans popup) */
+        .internal-choice-panel {
+            display: none;
+            flex-direction: column;
+            gap: 12px;
+            background: #252528;
+            border: 1px solid #3a3a42;
+            padding: 16px;
+            border-radius: 20px;
+            margin-bottom: 20px;
+            text-align: center;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+        }
+
+        .choice-buttons {
+            display: flex;
+            gap: 12px;
+        }
+
+        .btn-choice {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-weight: 700;
+            color: #fff;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        .btn-choice.bg { background: #3a3a44; border: 1px solid #4a4a56; }
+        .btn-choice.logo { background: #007aff; }
+
+        /* Bouton principal */
+        .btn-action {
+            width: 100%;
+            padding: 18px;
+            border: none;
+            border-radius: 20px;
+            background: linear-gradient(135deg, #3a3a44, #1e1e24);
+            color: #ffffff;
+            font-size: 15px;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.4);
+            transition: all 0.2s ease;
+            border: 1px solid #4a4a56;
+        }
+
+        .btn-action:active {
+            transform: scale(0.98);
+            background: linear-gradient(135deg, #282830, #14141a);
+        }
+
+        /* Zone de Rendu Vectoriel et Téléchargements */
+        .result-container {
+            margin-top: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+            min-height: 220px;
+            justify-content: center;
+            border-top: 1px solid #2d2d35;
+            padding-top: 20px;
+        }
+
+        /* Modifié pour garantir un carré parfait à l'écran, identique à l'export */
+        .svg-wrapper {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            display: none;
+            justify-content: center;
+            align-items: center;
+            border-radius: 20px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.6);
+        }
+
+        .svg-wrapper svg {
+            width: 100%;
+            height: 100%;
+            display: block;
+        }
+
+        .download-group {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .btn-download-svg {
+            background: linear-gradient(135deg, #2c3e50, #000000);
+            display: none;
+            border: 1px solid #455a64;
+        }
+
+        .btn-download-png {
+            background: linear-gradient(135deg, #007aff, #0044cc);
+            display: none;
+            border: 1px solid #3399ff;
+        }
+
+        /* Signature en bas */
+        .footer-signature {
+            text-align: center;
+            font-size: 10px;
+            color: #555562;
+            margin-top: auto;
+            padding-top: 20px;
+            letter-spacing: 0.5px;
+            border-top: 1px solid #25252b;
+        }
+
+        .app-container::-webkit-scrollbar {
+            width: 0px;
+        }
+    </style>
+
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b6cb7">
+<link rel="apple-touch-icon" href="icon.png"></head>
+<body>
+
+    <div class="app-container">
+        
+        <div class="app-header">Vector Engine Infinite</div>
+
+        <!-- Deux photos en haut côte à côte -->
+        <div class="images-row">
+            <div class="upload-zone" id="uploadZoneSource">
+                <div class="plus-icon" id="uploadIcon">+</div>
+                <p id="uploadText">Logo d'origine</p>
+                <img id="sourcePreview" src="" alt="Source" style="display: none;">
+            </div>
+            
+            <div class="upload-zone" id="uploadZoneRef">
+                <div class="plus-icon" id="refUploadIcon">+</div>
+                <p id="refUploadText">Photo couleurs</p>
+                <img id="refPreview" src="" alt="Référence" style="display: none;">
+            </div>
+        </div>
+        
+        <!-- Curseur de niveau de Zoom sous les deux photos -->
+        <div class="zoom-container">
+            <div class="zoom-label-row">
+                <span>Niveau de Zoom</span>
+                <b id="zoomValue">100%</b>
+            </div>
+            <input type="range" id="zoomSlider" class="zoom-slider" min="10" max="250" value="100">
+        </div>
+        
+        <input type="file" id="fileInput" accept="image/*">
+        <input type="file" id="refInput" accept="image/*">
+
+        <!-- Configuration des Couleurs avec bouton Pipette central -->
+        <div class="controls-container">
+            <div class="color-pickers">
+                <div class="color-field">
+                    <span>Fond Target</span>
+                    <div class="color-btn-wrapper">
+                        <input type="color" id="bgColor" value="#ffffff">
+                    </div>
+                </div>
+                
+                <div class="color-field">
+                    <span>Pipette</span>
+                    <div class="pipette-btn" id="pipetteBtn">🧪</div>
+                </div>
+
+                <div class="color-field">
+                    <span>Logo Target</span>
+                    <div class="color-btn-wrapper">
+                        <input type="color" id="logoColor" value="#000000">
+                    </div>
+                </div>
+            </div>
+
+            <!-- Panneau de choix interne masqué par défaut -->
+            <div id="choicePanel" class="internal-choice-panel">
+                <div style="font-size: 13px; margin-bottom: 10px; color: #bbb;">
+                    Utiliser la couleur capturée <span id="previewColorIndicator" style="display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; border:1px solid #555; margin-left:4px;"></span> comme :
+                </div>
+                <div class="choice-buttons">
+                    <button class="btn-choice bg" id="applyToBgBtn">Fond</button>
+                    <button class="btn-choice logo" id="applyToLogoBtn">Logo</button>
+                </div>
+            </div>
+
+            <button class="btn-action" id="transformBtn">Vectoriser & Lisser les Courbes</button>
+        </div>
+
+        <!-- Sortie Vectorielle (SVG Dynamique) & Actions -->
+        <div class="result-container">
+            <div id="svgContainer" class="svg-wrapper"></div>
+            
+            <div class="download-group">
+                <button class="btn-action btn-download-png" id="downloadPngBtn">Télécharger en PNG HD</button>
+                <button class="btn-action btn-download-svg" id="downloadSvgBtn">Télécharger le fichier .SVG</button>
+            </div>
+        </div>
+
+        <!-- Signature réglementaire -->
+        <div class="footer-signature">
+            Made by Laiche Brahim 2026 Paris
+        </div>
+
+    </div>
+
+    <!-- Canvases de calculs cachés -->
+    <canvas id="maskCanvas" style="display: none;"></canvas>
+
+    <script>
+        const fileInput = document.getElementById('fileInput');
+        const refInput = document.getElementById('refInput');
+        const sourcePreview = document.getElementById('sourcePreview');
+        const refPreview = document.getElementById('refPreview');
+        
+        const uploadZoneSource = document.getElementById('uploadZoneSource');
+        const uploadZoneRef = document.getElementById('uploadZoneRef');
+        const uploadIcon = document.getElementById('uploadIcon');
+        const uploadText = document.getElementById('uploadText');
+        const refUploadIcon = document.getElementById('refUploadIcon');
+        const refUploadText = document.getElementById('refUploadText');
+
+        const transformBtn = document.getElementById('transformBtn');
+        const downloadSvgBtn = document.getElementById('downloadSvgBtn');
+        const downloadPngBtn = document.getElementById('downloadPngBtn');
+        const svgContainer = document.getElementById('svgContainer');
+        const maskCanvas = document.getElementById('maskCanvas');
+        const maskCtx = maskCanvas.getContext('2d');
+
+        const pipetteBtn = document.getElementById('pipetteBtn');
+        const choicePanel = document.getElementById('choicePanel');
+        const previewColorIndicator = document.getElementById('previewColorIndicator');
+        
+        const zoomSlider = document.getElementById('zoomSlider');
+        const zoomValue = document.getElementById('zoomValue');
+
+        let originalImage = null;
+        let finalSvgString = "";
+        let finalWidth = 0;
+        let finalHeight = 0;
+
+        let pipetteActive = false;
+        let lastPickedColor = null;
+        let zoomFactor = 1.0;
+
+        // Gestion du sélecteur de niveau de zoom en temps réel sur l'espace carré
+        zoomSlider.addEventListener('input', function() {
+            zoomFactor = this.value / 100;
+            zoomValue.textContent = this.value + '%';
+            
+            const svgImage = svgContainer.querySelector('image');
+            if (svgImage && originalImage) {
+                const scale = 4;
+                let baseW = originalImage.naturalWidth * scale;
+                let baseH = originalImage.naturalHeight * scale;
+                let squareSize = Math.max(baseW, baseH);
+                
+                let imgWidth = baseW * zoomFactor;
+                let imgHeight = baseH * zoomFactor;
+                let imgX = (squareSize - imgWidth) / 2;
+                let imgY = (squareSize - imgHeight) / 2;
+                
+                svgImage.setAttribute('width', imgWidth);
+                svgImage.setAttribute('height', imgHeight);
+                svgImage.setAttribute('x', imgX);
+                svgImage.setAttribute('y', imgY);
+                
+                finalSvgString = svgContainer.innerHTML;
+            }
+        });
+
+        // Gestion de l'upload de la première photo (Logo)
+        uploadZoneSource.addEventListener('click', function() {
+            if (!pipetteActive) fileInput.click();
+        });
+
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    originalImage = new Image();
+                    originalImage.onload = function() {
+                        sourcePreview.src = event.target.result;
+                        sourcePreview.style.display = 'block';
+                        uploadIcon.style.display = 'none';
+                        uploadText.style.display = 'none';
+                    };
+                    originalImage.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Gestion de l'upload de la deuxième photo (Palette couleurs)
+        uploadZoneRef.addEventListener('click', function() {
+            if (!pipetteActive) refInput.click();
+        });
+
+        refInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(event) {
+                    refPreview.onload = function() {
+                        refPreview.style.display = 'block';
+                        refUploadIcon.style.display = 'none';
+                        refUploadText.style.display = 'none';
+                    };
+                    refPreview.src = event.target.result;
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        // Logique du bouton Pipette (Enfoncé / Désactivé)
+        pipetteBtn.addEventListener('click', function() {
+            if (!pipetteActive) {
+                pipetteActive = true;
+                pipetteBtn.classList.add('active');
+                choicePanel.style.display = 'none';
+            } else {
+                pipetteActive = false;
+                pipetteBtn.classList.remove('active');
+                if (lastPickedColor) {
+                    previewColorIndicator.style.backgroundColor = lastPickedColor;
+                    choicePanel.style.display = 'flex';
+                    choicePanel.scrollIntoView({ behavior: 'smooth' });
+                }
+            }
+        });
+
+        // Captures des clics coordonnées sur les images pour la pipette
+        sourcePreview.addEventListener('click', function(e) {
+            if (pipetteActive) {
+                e.stopPropagation();
+                capturePixelColor(e, sourcePreview);
+            }
+        });
+
+        refPreview.addEventListener('click', function(e) {
+            if (pipetteActive) {
+                e.stopPropagation();
+                capturePixelColor(e, refPreview);
+            }
+        });
+
+        function capturePixelColor(e, imgElement) {
+            const rect = imgElement.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * imgElement.naturalWidth;
+            const y = ((e.clientY - rect.top) / rect.height) * imgElement.naturalHeight;
+            
+            const canvasTmp = document.createElement('canvas');
+            canvasTmp.width = 1;
+            canvasTmp.height = 1;
+            const ctxTmp = canvasTmp.getContext('2d');
+            ctxTmp.drawImage(imgElement, x, y, 1, 1, 0, 0, 1, 1);
+            const data = ctxTmp.getImageData(0, 0, 1, 1).data;
+            
+            lastPickedColor = "#" + ((1 << 24) + (data[0] << 16) + (data[1] << 8) + data[2]).toString(16).slice(1);
+            pipetteBtn.style.backgroundColor = lastPickedColor;
+        }
+
+        // Assignation interne de la décision Pipette
+        document.getElementById('applyToBgBtn').addEventListener('click', function() {
+            if (lastPickedColor) {
+                document.getElementById('bgColor').value = lastPickedColor;
+                resetPipetteState();
+            }
+        });
+
+        document.getElementById('applyToLogoBtn').addEventListener('click', function() {
+            if (lastPickedColor) {
+                document.getElementById('logoColor').value = lastPickedColor;
+                resetPipetteState();
+            }
+        });
+
+        function resetPipetteState() {
+            choicePanel.style.display = 'none';
+            lastPickedColor = null;
+            pipetteBtn.style.backgroundColor = '#282830';
+        }
+
+        // Algorithme de vectorisation configuré pour un espace carré parfait
+        transformBtn.addEventListener('click', function() {
+            if (!originalImage) return;
+
+            const scale = 4;
+            let baseW = originalImage.naturalWidth * scale;
+            let baseH = originalImage.naturalHeight * scale;
+            
+            maskCanvas.width = baseW;
+            maskCanvas.height = baseH;
+            
+            maskCtx.imageSmoothingEnabled = true;
+            maskCtx.imageSmoothingQuality = 'high';
+            maskCtx.drawImage(originalImage, 0, 0, baseW, baseH);
+
+            const imgData = maskCtx.getImageData(0, 0, baseW, baseH);
+            const data = imgData.data;
+
+            const origBgR = data[0];
+            const origBgG = data[1];
+            const origBgB = data[2];
+
+            const tolerance = 110;
+
+            for (let i = 0; i < data.length; i += 4) {
+                let r = data[i];
+                let g = data[i+1];
+                let b = data[i+2];
+                let a = data[i+3];
+
+                let distanceToBg = Math.sqrt(
+                    Math.pow(r - origBgR, 2) +
+                    Math.pow(g - origBgG, 2) +
+                    Math.pow(b - origBgB, 2)
+                );
+
+                if (a < 15 || distanceToBg < tolerance) {
+                    data[i+3] = 0;
+                } else {
+                    data[i] = 0; data[i+1] = 0; data[i+2] = 0; data[i+3] = 255;
+                }
+            }
+            maskCtx.putImageData(imgData, 0, 0);
+
+            const maskDataUrl = maskCanvas.toDataURL('image/png');
+
+            const hexBg = document.getElementById('bgColor').value;
+            const hexLogo = document.getElementById('logoColor').value;
+            const rgbLogo = hexToRgbNormalized(hexLogo);
+
+            // Création forcée d'un environnement carré (basé sur la dimension maximale)
+            finalWidth = Math.max(baseW, baseH);
+            finalHeight = finalWidth;
+
+            // Calcul centré et proportionnel de l'image contenant le facteur de zoom
+            let imgWidth = baseW * zoomFactor;
+            let imgHeight = baseH * zoomFactor;
+            let imgX = (finalWidth - imgWidth) / 2;
+            let imgY = (finalHeight - imgHeight) / 2;
+
+            finalSvgString = `
+                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${finalWidth} ${finalHeight}" width="${finalWidth}" height="${finalHeight}">
+                    <defs>
+                        <filter id="infinite-vector-clean" color-interpolation-filters="sRGB">
+                            <feGaussianBlur stdDeviation="5" result="blur" />
+                            <feColorMatrix type="matrix" values="
+                                0 0 0 0 ${rgbLogo.r}
+                                0 0 0 0 ${rgbLogo.g}
+                                0 0 0 0 ${rgbLogo.b}
+                                0 0 0 48 -24" in="blur" />
+                        </filter>
+                    </defs>
+                    <rect width="100%" height="100%" fill="${hexBg}" />
+                    <image href="${maskDataUrl}" x="${imgX}" y="${imgY}" width="${imgWidth}" height="${imgHeight}" filter="url(#infinite-vector-clean)" />
+                </svg>
+            `.trim();
+
+            svgContainer.innerHTML = finalSvgString;
+            svgContainer.style.display = 'flex';
+            
+            downloadPngBtn.style.display = 'block';
+            downloadSvgBtn.style.display = 'block';
+
+            svgContainer.scrollIntoView({ behavior: 'smooth' });
+        });
+
+        // Téléchargements PNG Carré HD (Le niveau de zoom est nativement préservé)
+        downloadPngBtn.addEventListener('click', function() {
+            if (!finalSvgString) return;
+
+            const svgBlob = new Blob([finalSvgString], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(svgBlob);
+            const tempImg = new Image();
+
+            tempImg.onload = function() {
+                const pngCanvas = document.createElement('canvas');
+                // Canvas configuré sur la taille carrée calculée
+                pngCanvas.width = finalWidth;
+                pngCanvas.height = finalHeight;
+                const pngCtx = pngCanvas.getContext('2d');
+                pngCtx.drawImage(tempImg, 0, 0);
+
+                const link = document.createElement('a');
+                link.download = 'logo_perfect_quality_square.png';
+                link.href = pngCanvas.toDataURL('image/png', 1.0);
+                link.click();
+                URL.revokeObjectURL(url);
+            };
+            tempImg.src = url;
+        });
+
+        downloadSvgBtn.addEventListener('click', function() {
+            if (!finalSvgString) return;
+            const blob = new Blob([finalSvgString], {type: 'image/svg+xml;charset=utf-8'});
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.download = 'logo_infinite_vector_square.svg';
+            link.href = url;
+            link.click();
+            URL.revokeObjectURL(url);
+        });
+
+        function hexToRgbNormalized(hex) {
+            const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+            return result ? {
+                r: (parseInt(result[1], 16) / 255).toFixed(3),
+                g: (parseInt(result[2], 16) / 255).toFixed(3),
+                b: (parseInt(result[3], 16) / 255).toFixed(3)
+            } : { r: 0, g: 0, b: 0 };
+        }
+
+        // --- SYNTHÉTISEUR AUDIO NATIF POUR RETOUR TACTILE DES CLICS ---
+        function playClickSound() {
+            try {
+                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                const osc = audioCtx.createOscillator();
+                const gainNode = audioCtx.createGain();
+
+                osc.type = 'sine';
+                osc.frequency.setValueAtTime(800, audioCtx.currentTime);
+                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.04);
+
+                gainNode.gain.setValueAtTime(0.04, audioCtx.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.04);
+
+                osc.connect(gainNode);
+                gainNode.connect(audioCtx.destination);
+
+                osc.start();
+                osc.stop(audioCtx.currentTime + 0.04);
+            } catch (e) {
+                console.warn("AudioContext restreint ou non pris en charge", e);
+            }
+        }
+
+        // Liaison automatique du son sur les éléments d'interface tactiles
+        document.querySelectorAll('.btn-action, .pipette-btn, .btn-choice, .upload-zone, .color-btn-wrapper').forEach(element => {
+            element.addEventListener('click', playClickSound);
+        });
+        zoomSlider.addEventListener('change', playClickSound);
+    </script>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
+</body>
+</html>
