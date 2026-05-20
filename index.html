@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-    <title>Vector Engine Infinite</title>
+    <title>Logomaker - Vector Engine</title>
     <style>
         * {
             box-sizing: border-box;
@@ -153,7 +153,7 @@
             box-shadow: 0 2px 6px rgba(0,0,0,0.4);
         }
 
-        /* Section Boutons de contrôle */
+        /* Section Boutons de contrôle (Ajustée pour 3 éléments : Fond, Pipette, Logo) */
         .controls-container {
             display: flex;
             flex-direction: column;
@@ -163,7 +163,7 @@
 
         .color-pickers {
             display: flex;
-            justify-content: space-around;
+            justify-content: space-between;
             align-items: flex-end;
             gap: 12px;
         }
@@ -177,19 +177,20 @@
         }
 
         .color-field span {
-            font-size: 11px;
+            font-size: 9px;
             color: #8e8e9a;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
             font-weight: 600;
             text-align: center;
+            white-space: nowrap;
         }
 
-        /* Boutons carrés pour les couleurs et la pipette */
+        /* Boutons élargis à 90px car il n'y a plus que 3 éléments */
         .color-btn-wrapper, .pipette-btn {
-            width: 76px;
-            height: 76px;
-            border-radius: 20px;
+            width: 90px;
+            height: 90px;
+            border-radius: 22px;
             background: #282830;
             display: flex;
             justify-content: center;
@@ -212,7 +213,6 @@
             -webkit-appearance: none;
         }
 
-        /* État enfoncé de la pipette */
         .pipette-btn {
             cursor: pointer;
             font-size: 26px;
@@ -241,18 +241,18 @@
 
         .choice-buttons {
             display: flex;
-            gap: 12px;
+            gap: 8px;
         }
 
         .btn-choice {
             flex: 1;
-            padding: 12px;
+            padding: 12px 6px;
             border: none;
             border-radius: 12px;
             cursor: pointer;
             font-weight: 700;
             color: #fff;
-            font-size: 14px;
+            font-size: 11px;
             text-transform: uppercase;
         }
 
@@ -294,10 +294,10 @@
             padding-top: 20px;
         }
 
-        /* Modifié pour garantir un carré parfait à l'écran, identique à l'export */
+        /* Modifié en carré parfait (140px par 140px) pour refléter fidèlement le format d'exportation */
         .svg-wrapper {
-            width: 100%;
-            aspect-ratio: 1 / 1;
+            width: 140px;
+            height: 140px;
             display: none;
             justify-content: center;
             align-items: center;
@@ -383,13 +383,13 @@
         <input type="file" id="fileInput" accept="image/*">
         <input type="file" id="refInput" accept="image/*">
 
-        <!-- Configuration des Couleurs avec bouton Pipette central -->
+        <!-- Configuration des Couleurs ramenée à 2 sélecteurs + pipette -->
         <div class="controls-container">
             <div class="color-pickers">
                 <div class="color-field">
-                    <span>Fond Target</span>
+                    <span>Couleur Fond</span>
                     <div class="color-btn-wrapper">
-                        <input type="color" id="bgColor" value="#ffffff">
+                        <input type="color" id="bgColor" value="#ff416c">
                     </div>
                 </div>
                 
@@ -399,14 +399,14 @@
                 </div>
 
                 <div class="color-field">
-                    <span>Logo Target</span>
+                    <span>Couleur Logo</span>
                     <div class="color-btn-wrapper">
-                        <input type="color" id="logoColor" value="#000000">
+                        <input type="color" id="logoColor" value="#ffffff">
                     </div>
                 </div>
             </div>
 
-            <!-- Panneau de choix interne masqué par défaut -->
+            <!-- Panneau de choix interne ramené à 2 choix cibles -->
             <div id="choicePanel" class="internal-choice-panel">
                 <div style="font-size: 13px; margin-bottom: 10px; color: #bbb;">
                     Utiliser la couleur capturée <span id="previewColorIndicator" style="display:inline-block; width:16px; height:16px; border-radius:4px; vertical-align:middle; border:1px solid #555; margin-left:4px;"></span> comme :
@@ -546,7 +546,7 @@
             }
         });
 
-        // Logique du bouton Pipette (Enfoncé / Désactivé)
+        // Logique du bouton Pipette
         pipetteBtn.addEventListener('click', function() {
             if (!pipetteActive) {
                 pipetteActive = true;
@@ -563,7 +563,7 @@
             }
         });
 
-        // Captures des clics coordonnées sur les images pour la pipette
+        // Captures des clics pour la pipette
         sourcePreview.addEventListener('click', function(e) {
             if (pipetteActive) {
                 e.stopPropagation();
@@ -594,7 +594,7 @@
             pipetteBtn.style.backgroundColor = lastPickedColor;
         }
 
-        // Assignation interne de la décision Pipette
+        // Assignations depuis le panneau pipette
         document.getElementById('applyToBgBtn').addEventListener('click', function() {
             if (lastPickedColor) {
                 document.getElementById('bgColor').value = lastPickedColor;
@@ -615,7 +615,7 @@
             pipetteBtn.style.backgroundColor = '#282830';
         }
 
-        // Algorithme de vectorisation configuré pour un espace carré parfait
+        // Algorithme de vectorisation avec couleur unie de fond
         transformBtn.addEventListener('click', function() {
             if (!originalImage) return;
 
@@ -665,16 +665,15 @@
             const hexLogo = document.getElementById('logoColor').value;
             const rgbLogo = hexToRgbNormalized(hexLogo);
 
-            // Création forcée d'un environnement carré (basé sur la dimension maximale)
             finalWidth = Math.max(baseW, baseH);
             finalHeight = finalWidth;
 
-            // Calcul centré et proportionnel de l'image contenant le facteur de zoom
             let imgWidth = baseW * zoomFactor;
             let imgHeight = baseH * zoomFactor;
             let imgX = (finalWidth - imgWidth) / 2;
             let imgY = (finalHeight - imgHeight) / 2;
 
+            // Rendu SVG à 2 couleurs avec un fond plat uni (fill)
             finalSvgString = `
                 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${finalWidth} ${finalHeight}" width="${finalWidth}" height="${finalHeight}">
                     <defs>
@@ -701,7 +700,7 @@
             svgContainer.scrollIntoView({ behavior: 'smooth' });
         });
 
-        // Téléchargements PNG Carré HD (Le niveau de zoom est nativement préservé)
+        // Téléchargements PNG Carré HD (Le fond uni et le zoom sont nativement préservés)
         downloadPngBtn.addEventListener('click', function() {
             if (!finalSvgString) return;
 
@@ -711,7 +710,6 @@
 
             tempImg.onload = function() {
                 const pngCanvas = document.createElement('canvas');
-                // Canvas configuré sur la taille carrée calculée
                 pngCanvas.width = finalWidth;
                 pngCanvas.height = finalHeight;
                 const pngCtx = pngCanvas.getContext('2d');
@@ -746,7 +744,7 @@
             } : { r: 0, g: 0, b: 0 };
         }
 
-        // --- SYNTHÉTISEUR AUDIO NATIF POUR RETOUR TACTILE DES CLICS ---
+        // --- SYNTHÉTISEUR AUDIO NATIF POUR RETOUR TACTILE ---
         function playClickSound() {
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -770,7 +768,7 @@
             }
         }
 
-        // Liaison automatique du son sur les éléments d'interface tactiles
+        // Liaison du son sur les éléments tactiles
         document.querySelectorAll('.btn-action, .pipette-btn, .btn-choice, .upload-zone, .color-btn-wrapper').forEach(element => {
             element.addEventListener('click', playClickSound);
         });
