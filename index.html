@@ -225,6 +225,29 @@
             transform: scale(0.95);
         }
 
+        /* Style des boutons de copie de code couleur */
+        .color-code-copy {
+            background: #25252c;
+            border-radius: 40px;
+            padding: 6px 12px;
+            font-size: 11px;
+            font-family: 'SF Mono', monospace;
+            font-weight: 500;
+            color: #ddddff;
+            letter-spacing: 0.5px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            border: 1px solid #3a3a44;
+            text-align: center;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        .color-code-copy:active {
+            transform: scale(0.96);
+            background: #1e1e28;
+            border-color: #007aff;
+        }
+
         /* Panneau de décision de couleur interne (sans popup) */
         .internal-choice-panel {
             display: none;
@@ -349,6 +372,9 @@
 
 <link rel="manifest" href="manifest.json">
 <meta name="theme-color" content="#4b6cb7">
+<link rel="apple-touch-icon" href="icon.png">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#4b6cb7">
 <link rel="apple-touch-icon" href="icon.png"></head>
 <body>
 
@@ -391,6 +417,8 @@
                     <div class="color-btn-wrapper">
                         <input type="color" id="bgColor" value="#ff416c">
                     </div>
+                    <!-- Nouveau bouton de copie pour la couleur du fond -->
+                    <div class="color-code-copy" id="bgColorCopyBtn">#ff416c</div>
                 </div>
                 
                 <div class="color-field">
@@ -403,6 +431,8 @@
                     <div class="color-btn-wrapper">
                         <input type="color" id="logoColor" value="#ffffff">
                     </div>
+                    <!-- Nouveau bouton de copie pour la couleur du logo -->
+                    <div class="color-code-copy" id="logoColorCopyBtn">#ffffff</div>
                 </div>
             </div>
 
@@ -467,6 +497,12 @@
         const zoomSlider = document.getElementById('zoomSlider');
         const zoomValue = document.getElementById('zoomValue');
 
+        // Éléments des boutons de copie des couleurs
+        const bgColorPicker = document.getElementById('bgColor');
+        const logoColorPicker = document.getElementById('logoColor');
+        const bgCopyBtn = document.getElementById('bgColorCopyBtn');
+        const logoCpyBtn = document.getElementById('logoColorCopyBtn');
+
         let originalImage = null;
         let finalSvgString = "";
         let finalWidth = 0;
@@ -475,6 +511,52 @@
         let pipetteActive = false;
         let lastPickedColor = null;
         let zoomFactor = 1.0;
+
+        // --- Fonctions de mise à jour des boutons code couleur ---
+        function updateBgCopyText() {
+            const color = bgColorPicker.value;
+            bgCopyBtn.textContent = color;
+        }
+        function updateLogoCpyText() {
+            const color = logoColorPicker.value;
+            logoCpyBtn.textContent = color;
+        }
+
+        // Écouteurs pour mise à jour automatique
+        bgColorPicker.addEventListener('input', () => {
+            updateBgCopyText();
+        });
+        logoColorPicker.addEventListener('input', () => {
+            updateLogoCpyText();
+        });
+
+        // Copie dans le presse-papiers avec retour visuel
+        async function copyToClipboard(text, element) {
+            try {
+                await navigator.clipboard.writeText(text);
+                // Petit feedback temporaire
+                const originalText = element.textContent;
+                element.textContent = '✓ Copié !';
+                setTimeout(() => {
+                    element.textContent = originalText;
+                }, 800);
+            } catch (err) {
+                console.warn('Erreur copie: ', err);
+                element.textContent = 'Erreur';
+                setTimeout(() => {
+                    element.textContent = text;
+                }, 600);
+            }
+        }
+
+        bgCopyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(bgColorPicker.value, bgCopyBtn);
+        });
+        logoCpyBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            copyToClipboard(logoColorPicker.value, logoCpyBtn);
+        });
 
         // Gestion du sélecteur de niveau de zoom en temps réel sur l'espace carré
         zoomSlider.addEventListener('input', function() {
@@ -598,6 +680,7 @@
         document.getElementById('applyToBgBtn').addEventListener('click', function() {
             if (lastPickedColor) {
                 document.getElementById('bgColor').value = lastPickedColor;
+                updateBgCopyText();  // Mise à jour du texte du bouton copie
                 resetPipetteState();
             }
         });
@@ -605,6 +688,7 @@
         document.getElementById('applyToLogoBtn').addEventListener('click', function() {
             if (lastPickedColor) {
                 document.getElementById('logoColor').value = lastPickedColor;
+                updateLogoCpyText(); // Mise à jour du texte du bouton copie
                 resetPipetteState();
             }
         });
@@ -768,12 +852,18 @@
             }
         }
 
-        // Liaison du son sur les éléments tactiles
-        document.querySelectorAll('.btn-action, .pipette-btn, .btn-choice, .upload-zone, .color-btn-wrapper').forEach(element => {
+        // Liaison du son sur les éléments tactiles, y compris nouveaux boutons de copie
+        document.querySelectorAll('.btn-action, .pipette-btn, .btn-choice, .upload-zone, .color-btn-wrapper, .color-code-copy').forEach(element => {
             element.addEventListener('click', playClickSound);
         });
         zoomSlider.addEventListener('change', playClickSound);
+
+        // Initialisation des affichages des codes couleur
+        updateBgCopyText();
+        updateLogoCpyText();
     </script>
+
+<script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('./sw.js'));}</script>
 </body>
