@@ -1,0 +1,86 @@
+name: Build APK Android
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Récupération du code
+        uses: actions/checkout@v4
+
+      - name: Configuration Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Configuration Java 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'zulu'
+          java-version: '21'
+
+      - name: Construction de l'environnement PWA → APK
+        run: |
+          mkdir -p capacitor-app/www
+          rsync -av --exclude='capacitor-app' --exclude='.git' --exclude='.github' ./ capacitor-app/www/
+          cd capacitor-app
+          npm init -y
+          npm install @capacitor/core @capacitor/android
+          npm install -D @capacitor/cli
+          npx cap init "Logomaker" "com.brahim.logomaker" --web-dir www
+          npx cap add android
+
+      - name: 🔒 Minification du code monolithique (sécurité + performance)
+        run: |
+          cd capacitor-app
+          MAIN_HTML=$(find www -maxdepth 1 -name "*.html" | head -n 1)
+          if [ -z "$MAIN_HTML" ]; then
+            echo "⚠️ Aucun fichier HTML trouvé, minification ignorée."
+          else
+            echo "📄 Minification de : $MAIN_HTML"
+            npx html-minifier-terser --collapse-whitespace --remove-comments --minify-js true --minify-css true -o "$MAIN_HTML" "$MAIN_HTML"
+            echo "✅ Minification terminée."
+          fi
+
+      - name: Génération automatique de l'icône
+        run: |
+          cd capacitor-app
+          npm install -D @capacitor/assets
+          mkdir -p assets
+          if [ -f "../icon.png" ]; then
+            cp ../icon.png assets/icon.png
+            npx @capacitor/assets generate --android
+          else
+            echo "⚠️ icon.png introuvable – icône par défaut utilisée"
+          fi
+
+      - name: Résolution des conflits de doublons Kotlin
+        run: |
+          echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> capacitor-app/android/app/build.gradle
+
+      - name: Compilation de l'APK
+        run: |
+          cd capacitor-app/android
+          chmod +x gradlew
+          ./gradlew assembleDebug
+
+      - name: Renommer l'APK avec le nom du projet
+        run: |
+          cd capacitor-app/android/app/build/outputs/apk/debug/
+          mv app-debug.apk Logomaker-debug.apk
+
+      - name: Publication de l'APK en Direct Download (Release)
+        uses: ncipollo/release-action@v1
+        with:
+          artifacts: "capacitor-app/android/app/build/outputs/apk/debug/Logomaker-debug.apk"
+          tag: "latest"
+          name: "Logomaker Latest Build"
+          allowUpdates: true
+          removeArtifacts: true
+          replacesArtifacts: true
+          prerelease: true
+          token: ${{ secrets.GITHUB_TOKEN }}
