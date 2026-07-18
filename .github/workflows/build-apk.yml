@@ -31,20 +31,52 @@ jobs:
           npm init -y
           npm install @capacitor/core @capacitor/android
           npm install -D @capacitor/cli
+          cat > capacitor.config.json << JSONEOF
+          {
+            "appId": "com.brahim.logomaker",
+            "appName": "Logomaker",
+            "webDir": "www",
+            "bundledWebRuntime": true
+          }
+          JSONEOF
           npx cap init "Logomaker" "com.brahim.logomaker" --web-dir www
           npx cap add android
 
-      - name: 🔒 Minification du code monolithique (sécurité + performance)
+      - name: 🔌 Téléchargement et injection chirurgicale du Bridge
+        run: |
+          cd capacitor-app/www
+          MAIN_HTML=$(find . -maxdepth 1 -name "*.html" | head -n 1)
+          if [ -z "$MAIN_HTML" ]; then
+            echo "⚠️ Aucun fichier HTML trouvé"
+          else
+            curl -s -o bridge.js "https://raw.githubusercontent.com/mekeirish/APK-Creator/main/bridge.js" || echo "⚠️ Téléchargement échoué"
+            if [ -f "../node_modules/@capacitor/core/dist/capacitor.js" ]; then
+              cp ../node_modules/@capacitor/core/dist/capacitor.js capacitor.js
+            else
+              touch capacitor.js
+            fi
+            node -e "
+              const fs = require('fs');
+              const htmlFile = '${MAIN_HTML}';
+              let content = fs.readFileSync(htmlFile, 'utf8');
+              let parts = content.split(/<\/body>/i);
+              if (parts.length > 1) {
+                let lastPart = parts.pop();
+                let scripts = '<script src="capacitor.js"><\/script>\n<script src="bridge.js"><\/script>\n</body>';
+                let newContent = parts.join('</body>') + scripts + lastPart;
+                fs.writeFileSync(htmlFile, newContent, 'utf8');
+                console.log('✅ Bridge injecté chirurgicalement');
+              } else {
+                console.log('⚠️ Aucun </body> trouvé, injection à la fin');
+                fs.appendFileSync(htmlFile, '<script src="capacitor.js"><\/script>\n<script src="bridge.js"><\/script>\n');
+              }
+            "
+          fi
+
+      - name: 🔄 Synchronisation des assets vers Android
         run: |
           cd capacitor-app
-          MAIN_HTML=$(find www -maxdepth 1 -name "*.html" | head -n 1)
-          if [ -z "$MAIN_HTML" ]; then
-            echo "⚠️ Aucun fichier HTML trouvé, minification ignorée."
-          else
-            echo "📄 Minification de : $MAIN_HTML"
-            npx html-minifier-terser --collapse-whitespace --remove-comments --minify-js true --minify-css true -o "$MAIN_HTML" "$MAIN_HTML"
-            echo "✅ Minification terminée."
-          fi
+          npx cap sync android
 
       - name: Génération automatique de l'icône
         run: |
@@ -55,10 +87,10 @@ jobs:
             cp ../icon.png assets/icon.png
             npx @capacitor/assets generate --android
           else
-            echo "⚠️ icon.png introuvable – icône par défaut utilisée"
+            echo "⚠️ icon.png introuvable"
           fi
 
-      - name: Résolution des conflits de doublons Kotlin
+      - name: Résolution des conflits Kotlin
         run: |
           echo "configurations.all { exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk7'; exclude group: 'org.jetbrains.kotlin', module: 'kotlin-stdlib-jdk8' }" >> capacitor-app/android/app/build.gradle
 
@@ -68,12 +100,12 @@ jobs:
           chmod +x gradlew
           ./gradlew assembleDebug
 
-      - name: Renommer l'APK avec le nom du projet
+      - name: Renommer l'APK
         run: |
           cd capacitor-app/android/app/build/outputs/apk/debug/
           mv app-debug.apk Logomaker-debug.apk
 
-      - name: Publication de l'APK en Direct Download (Release)
+      - name: Publication de l'APK en Release
         uses: ncipollo/release-action@v1
         with:
           artifacts: "capacitor-app/android/app/build/outputs/apk/debug/Logomaker-debug.apk"
